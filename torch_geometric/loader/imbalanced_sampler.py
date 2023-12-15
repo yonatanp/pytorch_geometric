@@ -59,7 +59,8 @@ class ImbalancedSampler(torch.utils.data.WeightedRandomSampler):
                                 sampler=sampler, ...)
 
     Args:
-        dataset (Dataset/Data/HeteroData/Tensor/List[Data]/List[HeteroData]):
+        dataset (Dataset or Data or HeteroData or Tensor or List[Data] or
+                 List[HeteroData]):
             The dataset or class distribution from which to sample the data,
             given as one of :class:`~torch_geometric.data.Dataset`,
             :class:`~torch_geometric.data.Data` (or a list of such),
@@ -83,7 +84,8 @@ class ImbalancedSampler(torch.utils.data.WeightedRandomSampler):
     """
     def __init__(
         self,
-        dataset: Union[Dataset, Data, HeteroData, List[Data], List[HeteroData], Tensor],
+        dataset: Union[Dataset, Data, HeteroData, List[Data], List[HeteroData],
+                       Tensor],
         input_nodes: InputNodes = None,
         num_samples: Optional[int] = None,
     ):
@@ -101,15 +103,21 @@ class ImbalancedSampler(torch.utils.data.WeightedRandomSampler):
             assert len(dataset) == y.numel()
 
         elif isinstance(dataset, HeteroData):
-            node_type, input_nodes = (input_nodes, None) if isinstance(input_nodes, str) else input_nodes
+            if isinstance(input_nodes, str):
+                node_type, input_nodes = input_nodes, None
+            else:
+                node_type, input_nodes = input_nodes
             y = dataset[node_type].y.view(-1)
             assert dataset[node_type].num_nodes == y.numel()
             y = y[input_nodes] if input_nodes is not None else y
 
         else:
             if isinstance(dataset[0], HeteroData):
-                assert isinstance(input_nodes, str) or input_nodes[1] is None
-                node_type = input_nodes if isinstance(input_nodes, str) else input_nodes[0]
+                if isinstance(input_nodes, str):
+                    node_type = input_nodes
+                else:
+                    assert input_nodes[1] is None
+                    node_type = input_nodes[0]
                 ys = [data[node_type].y for data in dataset]
             else:
                 ys = [data.y for data in dataset]
